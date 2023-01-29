@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#! /usr/bin/env nix-shell
+#! nix-shell -i bash -p bash
 
 sh <(curl -L https://nixos.org/nix/install) --daemon
 
@@ -81,6 +82,7 @@ fi
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
 
+
 target_dir="${HOME}/.config/nvim"
 if [ ! -d "${target_dir}" ]; then
   git clone "https://github.com/chriskempson/base16-shell.git" "${target_dir}"
@@ -88,3 +90,37 @@ else
   cd "${target_dir}"
   git pull
 fi
+
+# Repositories
+REPOSITORIES_DIRECTORY="${HOME}/Repositories"
+mkdir -p "${REPOSITORIES_DIRECTORY}"
+
+upsert_package() {
+  REPOSITORIES_DIRECTORY=$1
+  PACKAGE_NAME=$2
+  target_dir="${REPOSITORIES_DIRECTORY}/${PACKAGE_NAME}"
+  if [ ! -d "${target_dir}" ]; then
+    git clone "https://github.com/Industrial/${PACKAGE_NAME}.git" "${target_dir}"
+  else
+    cd "${target_dir}"
+    if [ -x "$(command -v git-pull-rebase-safely)" ]; then
+      git-pull-rebase-safely
+    else
+      git pull --rebase
+    fi
+  fi
+
+  if [ -f "${target_dir}/bin/install" ]; then
+    $target_dir/bin/install
+  fi
+}
+
+upsert_package "${REPOSITORIES_DIRECTORY}" "git-pull-rebase-safely"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-actionsflow"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-fish"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-leftwm"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-neovim"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-qtile"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-tmux"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-vscode"
+upsert_package "${REPOSITORIES_DIRECTORY}" "configuration-xfce"
