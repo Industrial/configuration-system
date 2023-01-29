@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+sh <(curl -L https://nixos.org/nix/install) --daemon
+
+sudo pacman -Syy --noconfirm
+sudo pacman -Su --noconfirm
+
+sudo pacman -S --noconfirm \
+  base-devel \
+  gufw \
+  lib32-mesa \
+  lib32-vulkan-radeon \
+  mesa \
+  net-tools \
+  ufw \
+  vulkan-radeon \
+  xf86-video-amdgpu \
+  yay
+
+NIXPKGS_ALLOW_UNFREE=1 nix-env -iA \
+  nixpkgs.act \
+  nixpkgs.bitwarden \
+  nixpkgs.bluez \
+  nixpkgs.bluez-alsa \
+  nixpkgs.bluez-tools \
+  nixpkgs.bookworm \
+  nixpkgs.chromium \
+  nixpkgs.discord \
+  nixpkgs.docker \
+  nixpkgs.docker-compose \
+  nixpkgs.element-desktop \
+  nixpkgs.fakeroot \
+  nixpkgs.fd \
+  nixpkgs.filezilla \
+  nixpkgs.fish \
+  nixpkgs.fzf \
+  nixpkgs.git \
+  nixpkgs.gitkraken \
+  nixpkgs.lutris \
+  nixpkgs.meld \
+  nixpkgs.nethogs \
+  nixpkgs.pulsemixer \
+  nixpkgs.ripgrep \
+  nixpkgs.slack \
+  nixpkgs.spotify \
+  nixpkgs.transmission-gtk \
+  nixpkgs.vit \
+  nixpkgs.xsel \
+  nixpkgs.zeal
+
+if timedatectl;
+then
+  timedatectl set-timezone Europe/Amsterdam
+  timedatectl set-ntp true
+fi
+
+sudo mhwd -a pci nonfree 0300
+
+sudo setcap "cap_net_admin,cap_net_raw=ep" $(which nethogs)
+
+sudo rfkill unblock bluetooth
+sudo systemctl enable bluetooth
+sudo systemctl start bluetooth
+
+if [ ! $(getent group docker) ]; then
+  sudo groupadd docker
+fi
+if [ $(id -nG | grep -c docker) -eq 0 ]; then
+  sudo usermod -aG docker $USER
+fi
+if [ $(systemctl is-enabled docker) != "enabled" ]; then
+  sudo systemctl enable docker
+fi
+if [ $(systemctl is-active docker) != "active" ]; then
+  sudo systemctl start docker
+fi
+
+if [ $(which fish) != "$SHELL" ]; then
+  sudo usermod -s $(which fish) $USER
+fi
+
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+
+target_dir="${HOME}/.config/nvim"
+if [ ! -d "${target_dir}" ]; then
+  git clone "https://github.com/chriskempson/base16-shell.git" "${target_dir}"
+else
+  cd "${target_dir}"
+  git pull
+fi
